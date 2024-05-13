@@ -16,7 +16,7 @@ class Processor:
             print(f"Too many groups, not enough activity, shortening the amount of groups to {len(activities)}")
             self.activities = activities
             self.group = len(activities)
-        self.week = List[Day]
+        self.week: List[Day] = []
 
     def activity_length(self) -> float:
         return round(self.total_periods / self.duration_of_day, 1)
@@ -27,25 +27,23 @@ class Processor:
     def sorting_activities_day(self, date: int):
         day = [Day(date) for _ in range(self.group)]
         remaining_activities = self.activities[:]
-        shuffle(remaining_activities)
 
-        for p in range(self.total_periods):
-            if p == self.lunch_period:
-                for d in day:
-                    d.add_activity("LUNCH")
-                continue
+        for g in range(self.group):
+            group_activities = remaining_activities[g:] + remaining_activities[:g]
+            for p in range(self.total_periods):
+                if p == self.lunch_period:
+                    day[g].add_activity("LUNCH")
+                    continue
+                shuffle(group_activities)
 
-            if not remaining_activities:
-                remaining_activities = self.activities[:]
-                shuffle(remaining_activities)
+                if not group_activities:
+                    group_activities = remaining_activities[g:] + remaining_activities[:g]
 
-            activity = remaining_activities.pop(0)
-            for d in day:
-                d.add_activity(activity)
+                activity = group_activities.pop(0)
+                day[g].add_activity(activity)
 
-        self.week.extend(self, day)
+        self.week.extend(day)
         self.sort_week()
-
 
     def create_table(self):
         workbook = xlsxwriter.Workbook('GroupPlanner.xlsx')
@@ -56,11 +54,11 @@ class Processor:
             self.sorting_activities_day(i)
 
         for g in range(self.group):
-            self.format_table(worksheet, start_row, g)
-            row = start_row + 1
+            self.format_table(workbook, worksheet, start_row, g)
             col = 1
-            for day in self.week[g::self.group]:
+            for i in range(g, len(self.week), self.group):
                 row = start_row + 1
+                day = self.week[i]
                 for activity in day.get_schedule():
                     worksheet.write(row, col, activity)
                     row += 1
@@ -69,40 +67,29 @@ class Processor:
 
         workbook.close()
 
-    def format_table(self, worksheet, start_row, group_index):
+    def format_table(self, workbook, worksheet, start_row, group_index):
         col = 0
         row = start_row
         content = ["", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
-        bold = worksheet.book.add_format({'bold': True})
+        cell_format = workbook.add_format()
+        cell_format.set_bold(True)
         for item in content:
-            worksheet.write(row, col, item, bold)
+            worksheet.write(row, col, item, cell_format)
             col += 1
-        worksheet.write(row + 1, 0, f"Group {group_index + 1}", bold)
+        worksheet.write(row + 1, 0, f"Group {group_index + 1}", cell_format)
         worksheet.write(row + 1, 1, "Duration " + str(self.activity_length()))
 
-
-
     def is_cross_over(self) -> Optional[List[Day]]:
-        for d in range(0, 5):
-            for i in range(len(self.week)):
-                checking = self.week[i]
-                for j in range(i + 1, len(self.week)):
-                    current = self.week[j]
-                    if checking.get_day() != current.get_day():
-                        break
-                    activities_checking = checking.get_schedule()
-                    activities_current = current.get_schedule()
+        for i in range(len(self.week)):
+            checking = self.week[i]
+            for j in range(i + 1, len(self.week)):
+                current = self.week[j]
+                if checking.get_day() != current.get_day():
+                    continue
+                activities_checking = checking.get_schedule()
+                activities_current = current.get_schedule()
 
-                    for idx, activity in enumerate(activities_checking):
-                        if idx < len(activities_current) and activity == activities_current[idx]:
-                            return [checking, current]
+                for idx, activity in enumerate(activities_checking):
+                    if idx < len(activities_current) and activity == activities_current[idx]:
+                        return [checking, current]
         return None
-
-
-
-
-
-
-
-
-

@@ -49,18 +49,8 @@ class Main:
         except Exception as e:
             messagebox.showerror("Error", str(e))
 
-# if __name__ == "__main__":
-#     root = tk.Tk()
-#     app = Main(root)
-#     root.mainloop()
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = Main(root)
+    root.mainloop()
 
-total_periods = int(6)
-lunch_period = int(3)
-duration_of_day = float(8)
-activities = ["fesfesf", "fesfef", 'eaqq', 'zxcz', 'wabntg', 'fejyyh']
-group = int(3)
-
-processor = Processor(total_periods, lunch_period, duration_of_day, activities, group)
-processor.create_table()
-
-messagebox.showinfo("Success", "The planner has been generated successfully!")
