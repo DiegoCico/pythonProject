@@ -9,11 +9,11 @@ class Processor:
         self.total_periods = total_periods
         self.lunch_period = lunch_period
         self.duration_of_day = duration_of_day
-        if group >= len(activities):
+        if len(activities) >= group:
             self.activities = activities
             self.group = group
         else:
-            print(f"Too many activities, not enough groups, shortening the amount of groups to {len(activities)}")
+            print(f"Too many groups, not enough activity, shortening the amount of groups to {len(activities)}")
             self.activities = activities
             self.group = len(activities)
         self.week = List[Day]
@@ -43,37 +43,42 @@ class Processor:
             for d in day:
                 d.add_activity(activity)
 
-        self.week.extend(day)
+        self.week.extend(self, day)
         self.sort_week()
+
 
     def create_table(self):
         workbook = xlsxwriter.Workbook('GroupPlanner.xlsx')
         worksheet = workbook.add_worksheet()
-        self.format_table(worksheet)
+        start_row = 0
+
         for i in range(5):
             self.sorting_activities_day(i)
 
-        row = 1
-        col = 1
-        for day in self.week:
-            row = 1
-            for activity in day.get_schedule():
-                worksheet.write(row, col, activity)
-                row += 1
-            col += 1
+        for g in range(self.group):
+            self.format_table(worksheet, start_row, g)
+            row = start_row + 1
+            col = 1
+            for day in self.week[g::self.group]:
+                row = start_row + 1
+                for activity in day.get_schedule():
+                    worksheet.write(row, col, activity)
+                    row += 1
+                col += 1
+            start_row += self.total_periods + 3
 
         workbook.close()
 
-    def format_table(self, worksheet):
+    def format_table(self, worksheet, start_row, group_index):
         col = 0
-        row = 0
+        row = start_row
         content = ["", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"]
         bold = worksheet.book.add_format({'bold': True})
         for item in content:
             worksheet.write(row, col, item, bold)
             col += 1
-        for group in range(self.group):
-            worksheet.write(row + 1, group + 1, "Duration " + str(self.activity_length()))
+        worksheet.write(row + 1, 0, f"Group {group_index + 1}", bold)
+        worksheet.write(row + 1, 1, "Duration " + str(self.activity_length()))
 
 
 
